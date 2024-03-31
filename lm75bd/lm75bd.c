@@ -30,24 +30,23 @@ error_code_t readTempLM75BD(uint8_t devAddr, float *temp) {
   error_code_t errCode;
   uint8_t buff[2] = {0x0};
   uint16_t signMask = 0x0400; // The 11th bit from right (aka bit 10) in our raw int will represent the sign
-  uint16_t flipMask = 0x07ff; // To do a binary NOT on only 11 bits
-  uint16_t overflowMask = ~0xf800; // To get rid of undesired overflow (chop off bits other than the 11 relevant ones)
+  uint16_t elevenBitMask = 0x07ff; // To do bitwise operations to basically treat a uint16_t like it only has 11 bits
 
   RETURN_IF_ERROR_CODE(i2cSendTo(devAddr, buff, 1)); // Set pointer register for temp read
   RETURN_IF_ERROR_CODE(i2cReceiveFrom(devAddr, buff, 2)); // Recieve 2 temperature bytes
 
   // Collect 11 meaningful bits into a 16-bit integer
   uint16_t raw = buff[0];
-  raw = raw << 3; 
+  raw <<= 3; 
   raw |= buff[1] >> 5;
 
   // Assign a value to the provided float, dependent on sign
   if (raw & signMask) {
     // Two's complement on raw -> positive representation
-    raw = raw ^ flipMask;
+    raw = raw ^ elevenBitMask;
     raw += 1;
 
-    raw &= overflowMask; // Ignore any potential overflow to the 12th bit from right
+    raw &= elevenBitMask; // Ignore any potential overflow to the 12th bit from right
 
     *temp = -(raw) * 0.125f;
   } else {
