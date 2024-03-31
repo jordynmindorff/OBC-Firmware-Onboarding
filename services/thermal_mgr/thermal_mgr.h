@@ -5,12 +5,15 @@
 
 typedef enum {
   THERMAL_MGR_EVENT_MEASURE_TEMP_CMD,
-  
+  THERMAL_MGR_EVENT_HANDLE_INTERRUPT
 } thermal_mgr_event_type_t;
 
 typedef struct {
   thermal_mgr_event_type_t type;
 } thermal_mgr_event_t;
+
+#define OS_TH_TEMP 80
+#define OS_HYS_TEMP 75
 
 #ifdef __cplusplus
 extern "C" {
