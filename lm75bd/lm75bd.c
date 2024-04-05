@@ -26,33 +26,23 @@ error_code_t lm75bdInit(lm75bd_config_t *config) {
 }
 
 error_code_t readTempLM75BD(uint8_t devAddr, float *temp) {
-  /* Implement this driver function */
+  if(temp == NULL) {
+    return ERR_CODE_INVALID_ARG;
+  }
+
   error_code_t errCode;
   uint8_t buff[2] = {0x0};
-  uint16_t signMask = 0x0400; // The 11th bit from right (aka bit 10) in our raw int will represent the sign
-  uint16_t elevenBitMask = 0x07ff; // To do bitwise operations to basically treat a uint16_t like it only has 11 bits
 
   RETURN_IF_ERROR_CODE(i2cSendTo(devAddr, buff, 1)); // Set pointer register for temp read
   RETURN_IF_ERROR_CODE(i2cReceiveFrom(devAddr, buff, 2)); // Recieve 2 temperature bytes
 
   // Collect 11 meaningful bits into a 16-bit integer
-  uint16_t raw = buff[0];
-  raw <<= 3; 
-  raw |= buff[1] >> 5;
+  int16_t raw = buff[0];
+  raw <<= 8; 
+  raw |= buff[1];
 
-  // Assign a value to the provided float, dependent on sign
-  if (raw & signMask) {
-    // Two's complement on raw -> positive representation
-    raw = raw ^ elevenBitMask;
-    raw += 1;
+  *temp = (float)(raw >> 5) * 0.125;
 
-    raw &= elevenBitMask; // Ignore any potential overflow to the 12th bit from right
-
-    *temp = -(raw) * 0.125f;
-  } else {
-    *temp = (raw) * 0.125f;
-  }
-  
   return ERR_CODE_SUCCESS;
 }
 
