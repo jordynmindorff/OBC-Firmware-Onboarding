@@ -10,6 +10,9 @@
 /* LM75BD Registers (p.8) */
 #define LM75BD_REG_CONF 0x01U  /* Configuration Register (R/W) */
 
+#define LM75BD_TEMP_MULTIPLIER 0.125
+#define LM75BD_UNUSED_BITS 5
+
 error_code_t lm75bdInit(lm75bd_config_t *config) {
   error_code_t errCode;
 
@@ -41,7 +44,7 @@ error_code_t readTempLM75BD(uint8_t devAddr, float *temp) {
   raw <<= 8; 
   raw |= buff[1];
 
-  *temp = (float)(raw >> 5) * 0.125;
+  *temp = (float)(raw >> LM75BD_UNUSED_BITS) * LM75BD_TEMP_MULTIPLIER;
 
   return ERR_CODE_SUCCESS;
 }

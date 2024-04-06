@@ -45,22 +45,23 @@ void initThermalSystemManager(lm75bd_config_t *config) {
 error_code_t thermalMgrSendEvent(thermal_mgr_event_t *event) {
   if (event == NULL) {
     return ERR_CODE_INVALID_ARG;
-  } else if (thermalMgrQueueHandle == NULL) {
+  } 
+  
+  if (thermalMgrQueueHandle == NULL) {
     return ERR_CODE_INVALID_STATE;
   }
 
-  if(xQueueSend(thermalMgrQueueHandle, (void *)event, 0) == pdPASS) {
-    return ERR_CODE_SUCCESS;
-  } else {
+  if (xQueueSend(thermalMgrQueueHandle, (void *)event, 0) != pdPASS) {
     return ERR_CODE_QUEUE_FULL;
   }
+
+  return ERR_CODE_SUCCESS;
 }
 
 // triggered on an interrupt sent
 // interrupt means either we've exceeded the overtemp threshold or gone back down below it (hysteresis)
 void osHandlerLM75BD(void) {
-  thermal_mgr_event_t interruptEvent;
-  interruptEvent.type = THERMAL_MGR_EVENT_HANDLE_INTERRUPT;
+  thermal_mgr_event_t interruptEvent = {.type = THERMAL_MGR_EVENT_HANDLE_INTERRUPT};
 
   thermalMgrSendEvent(&interruptEvent); // Register read is taken care of as temperature is checked
 }
@@ -69,27 +70,32 @@ static void thermalMgr(void *pvParameters) {
   thermal_mgr_event_t queueMsg;
   
   while (1) {
-    if(xQueueReceive(thermalMgrQueueHandle, &queueMsg, 0) == pdPASS) {
+    if (xQueueReceive(thermalMgrQueueHandle, &queueMsg, 0) == pdPASS) {
       float temp;
       
       error_code_t errCode = readTempLM75BD(LM75BD_OBC_I2C_ADDR, &temp);
       
       if (errCode != ERR_CODE_SUCCESS) {
         LOG_ERROR_CODE(errCode);
-        continue;
+        taskYIELD();
       }
 
-      if(queueMsg.type == THERMAL_MGR_EVENT_MEASURE_TEMP_CMD) {
+      if (queueMsg.type == THERMAL_MGR_EVENT_MEASURE_TEMP_CMD) {
         addTemperatureTelemetry(temp);
-      } else if (queueMsg.type == THERMAL_MGR_EVENT_HANDLE_INTERRUPT) {
-        if(temp > OS_TH_TEMP) {
+        continue;
+      } 
+      
+      if (queueMsg.type == THERMAL_MGR_EVENT_HANDLE_INTERRUPT) {
+        if (temp > LM75BD_DEFAULT_OT_THRESH) {
           overTemperatureDetected();
         } else {
           safeOperatingConditions();
         }
-      } else {
-        LOG_ERROR_CODE(ERR_CODE_INVALID_QUEUE_MSG);
+
+        continue;
       }
+
+      LOG_ERROR_CODE(ERR_CODE_INVALID_QUEUE_MSG);
     }
   }
 }

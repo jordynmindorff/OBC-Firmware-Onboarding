@@ -12,9 +12,6 @@ typedef struct {
   thermal_mgr_event_type_t type;
 } thermal_mgr_event_t;
 
-#define OS_TH_TEMP 80
-#define OS_HYS_TEMP 75
-
 #ifdef __cplusplus
 extern "C" {
 #endif
