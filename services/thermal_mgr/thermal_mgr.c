@@ -72,11 +72,11 @@ static void thermalMgr(void *pvParameters) {
     if(xQueueReceive(thermalMgrQueueHandle, &queueMsg, 0) == pdPASS) {
       float temp;
       
-      error_code_t result = readTempLM75BD(LM75BD_OBC_I2C_ADDR, &temp);
-      result = ERR_CODE_INVALID_STATE;
+      error_code_t errCode = readTempLM75BD(LM75BD_OBC_I2C_ADDR, &temp);
       
-      if (result != ERR_CODE_SUCCESS) {
-        LOG_ERROR_CODE(result);
+      if (errCode != ERR_CODE_SUCCESS) {
+        LOG_ERROR_CODE(errCode);
+        continue;
       }
 
       if(queueMsg.type == THERMAL_MGR_EVENT_MEASURE_TEMP_CMD) {
